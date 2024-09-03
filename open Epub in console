@@ -1,0 +1,23 @@
+import ebooklib
+from ebooklib import epub
+
+def read_epub(epub_file):
+    # Read EPUB file
+    book = epub.read_epub(epub_file)
+
+    # Print metadata
+    print(f"Title: {book.get_metadata('DC', 'title')[0][0]}")
+    print(f"Author: {', '.join(author[0] for author in book.get_metadata('DC', 'creator'))}")
+    print(f"Language: {book.get_metadata('DC', 'language')[0][0]}")
+    print(f"Identifier: {book.get_metadata('DC', 'identifier')[0][0]}")
+
+    # Extract and print content
+    for item in book.get_items():
+        if item.get_type() == ebooklib.ITEM_DOCUMENT:
+            print(f"Content of {item.get_name()}:\n")
+            print(item.get_body_content().decode('utf-8', errors='ignore'))
+            print("\n---------------------------------\n")
+
+if __name__ == "__main__":
+    epub_file = 'huxley-brave-new-world.epub'  # Replace with your EPUB file path
+    read_epub(epub_file)
