@@ -1,0 +1,68 @@
+import ebooklib
+from ebooklib import epub
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from bs4 import BeautifulSoup
+import os
+
+def read_epub(epub_file):
+    # Read EPUB file
+    book = epub.read_epub(epub_file)
+
+    # Extract content from book
+    content = []
+    for item in book.get_items():
+        # Check if the item is of type 'text'
+        if item.get_type() == ebooklib.ITEM_DOCUMENT:
+            # Parse HTML content using BeautifulSoup
+            soup = BeautifulSoup(item.get_body_content(), 'html.parser', from_encoding='utf-8')
+            # Extract all text content and join into a single string
+            text = soup.get_text(separator='\n', strip=True)
+            content.append(text)
+
+    return content
+
+def create_pdf(content, output_pdf):
+    # Create PDF using ReportLab
+    c = canvas.Canvas(output_pdf, pagesize=letter)
+    c.setTitle("EPUB to PDF Conversion")
+    textobject = c.beginText(50, 750)  # Start text at coordinates (50, 750)
+    textobject.setFont("Helvetica", 12)
+
+    line_height = 14  # Adjust as needed for spacing between lines
+    page_bottom_margin = 50  # Adjust as needed for bottom margin
+    page_height = 750 - page_bottom_margin  # Adjust for maximum text height per page
+
+    for line in content:
+        lines = line.strip().split('\n')  # Split lines by newline
+        for text_line in lines:
+            # Add the line of text to the text object
+            textobject.textLine(text_line.strip())
+
+            # Calculate the remaining space on the current page
+            remaining_space = textobject.getCursor()[1] - page_bottom_margin
+
+            if remaining_space < line_height:
+                # If there is not enough space for the next line, start a new page
+                c.drawText(textobject)
+                c.showPage()  # Start a new page
+                c.setFont("Helvetica", 12)
+                textobject = c.beginText(50, 750)  # Reset text at top of new page
+                textobject.setFont("Helvetica", 12)
+                textobject.textLine(text_line.strip())  # Add current line of text
+
+    # Draw the remaining text on the last page
+    c.drawText(textobject)
+    c.save()
+
+if __name__ == "__main__":
+    epub_file = 'huxley-brave-new-world.epub'  # Replace with your EPUB file path
+    output_pdf = 'output.pdf'  # Output PDF file name
+
+    # Read EPUB content
+    content = read_epub(epub_file)
+
+    # Create PDF from content
+    create_pdf(content, output_pdf)
+
+    print(f"PDF generated: {os.path.abspath(output_pdf)}")
